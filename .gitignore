@@ -1,3 +1,7 @@
+# ignore data and models files
+model/*.pkl
+data/interim/*.csv
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
