@@ -1,0 +1,8 @@
+stages:
+  preprare:
+    cmd: python .\src\data\dataset_cleasing.py --precipitaciones .\data\raw\precipitaciones.csv
+      --banco_central .\data\raw\banco_central.csv --precio_leche .\data\raw\precio_leche.csv
+    deps:
+    - .\src\data\dataset_cleasing.py
+    outs:
+    - .\data\processed\precio_leche.csv
