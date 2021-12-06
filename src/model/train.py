@@ -40,7 +40,7 @@ def get_arguments():
                         help='Path to yaml config file.')
     
     my_parser.add_argument('-o',
-                        '--ouput_model_path',
+                        '--output_model_path',
                         type=str,
                         default="models/model.pkl",
                         help='Path to save the trained model')
@@ -51,7 +51,7 @@ def get_arguments():
 args = get_arguments()
 
 dataframe_path = args.input_data_path
-output_model_path = args.ouput_model_path
+output_model_path = args.output_model_path
 
 X,y = load_data(dataframe_path)
 
