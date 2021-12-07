@@ -9,7 +9,6 @@ import flask as flk
 import json
 import src.model.predictor as model_predictor
 import pandas as pd
-import logging
 
 app = flk.Flask(__name__)
 
@@ -24,13 +23,11 @@ def hello():
 def model_api():
     body = flk.request.get_json(force=True)
     X = pd.DataFrame(data=body, index=[0])
-    X.to_csv('hola.csv')
     prediction = my_model.predict(X)
 
     data = {'precio_leche': '{}'.format(str(prediction[0]))}
-
     
     return json.dumps(data)
 
 if __name__ == "__main__":
-    app.run(debug=True, port=8888)
+    app.run(debug=True, host = '0.0.0.0', port=8889)

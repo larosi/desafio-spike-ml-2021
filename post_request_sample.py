@@ -26,7 +26,7 @@ for i in range(0, random_sample.shape[1]):
 body_json = json.dumps(body_dict)
 
 route = 'model_api'
-port = 8888
+port = 8889
 localhost_url = f'http://127.0.0.1:{port}/{route}'
 header = {'Contect-type': 'application/json'}
 r = requests.post(localhost_url, data = body_json)

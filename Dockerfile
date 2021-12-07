@@ -11,7 +11,7 @@ RUN pip install --no-cache-dir \
 	flask==2.0.2 \
 	pandas==1.3.4 \
 	scikit-learn==1.0.1
+EXPOSE 8889
 
-
-ENTRYPOINT bash
+ENTRYPOINT [""]
 CMD [""]
