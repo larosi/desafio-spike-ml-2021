@@ -12,27 +12,27 @@ stages:
       md5: 56c656342dc0b4c93d1fb745db7511a9
       size: 167327
   train:
-    cmd: python .\src\model\train.py --input_data .\data\processed\precio_leche.csv
-      --output_model_path .\models\model.pkl
+    cmd: python ./src/model/train.py --input_data ./data/processed/precio_leche.csv
+      --output_model_path ./models/model.pkl
     deps:
-    - path: .\data\processed\precio_leche.csv
+    - path: ./data/processed/precio_leche.csv
       md5: 56c656342dc0b4c93d1fb745db7511a9
-      size: 167327
-    - path: .\src\model\train.py
+      size: 167252
+    - path: ./src/model/train.py
       md5: d8f4d14416f8e34cdbe5767f52231da6
       size: 2780
     outs:
-    - path: .\models\model.pkl
-      md5: d9a1c7812112475158b40505720f3a2a
-      size: 31147
+    - path: ./models/model.pkl
+      md5: fb7bb9bbe51912fb330e0cac1d13aba8
+      size: 36001
   prepare:
-    cmd: python .\src\data\dataset_cleasing.py --precipitaciones .\data\raw\precipitaciones.csv
-      --banco_central .\data\raw\banco_central.csv --precio_leche .\data\raw\precio_leche.csv
+    cmd: python ./src/data/dataset_cleasing.py --precipitaciones ./data/raw/precipitaciones.csv
+      --banco_central ./data/raw/banco_central.csv --precio_leche ./data/raw/precio_leche.csv
     deps:
-    - path: .\src\data\dataset_cleasing.py
+    - path: ./src/data/dataset_cleasing.py
       md5: 07ebac16fdf2bc5d3f26459835ab5c4b
       size: 7306
     outs:
-    - path: .\data\processed\precio_leche.csv
+    - path: ./data/processed/precio_leche.csv
       md5: 56c656342dc0b4c93d1fb745db7511a9
-      size: 167327
+      size: 167252

@@ -1,16 +1,16 @@
 stages:
   prepare:
-    cmd: python .\src\data\dataset_cleasing.py --precipitaciones .\data\raw\precipitaciones.csv
-      --banco_central .\data\raw\banco_central.csv --precio_leche .\data\raw\precio_leche.csv
+    cmd: python ./src/data/dataset_cleasing.py --precipitaciones ./data/raw/precipitaciones.csv
+      --banco_central ./data/raw/banco_central.csv --precio_leche ./data/raw/precio_leche.csv
     deps:
-    - .\src\data\dataset_cleasing.py
+    - ./src/data/dataset_cleasing.py
     outs:
-    - .\data\processed\precio_leche.csv
+    - ./data/processed/precio_leche.csv
   train:
-    cmd: python .\src\model\train.py --input_data .\data\processed\precio_leche.csv
-      --output_model_path .\models\model.pkl
+    cmd: python ./src/model/train.py --input_data ./data/processed/precio_leche.csv
+      --output_model_path ./models/model.pkl
     deps:
-    - .\data\processed\precio_leche.csv
-    - .\src\model\train.py
+    - ./data/processed/precio_leche.csv
+    - ./src/model/train.py
     outs:
-    - .\models\model.pkl
+    - ./models/model.pkl
