@@ -27,76 +27,15 @@ def get_arguments():
     
     my_parser.add_argument('--output_data',
                            type=str,
-                           default="data/processed/precio_leche.csv",
+                           default="data/processed/merged.csv",
+                           help='Path to clean precio_leche.csv')
+    
+    my_parser.add_argument('--output_features',
+                           type=str,
+                           default="data/processed/features.csv",
                            help='Path to clean precio_leche.csv')
     
     return my_parser.parse_args()
-
-
-""" Datos y limpieza de Datos"""
-args = get_arguments()
-
-precipitaciones_path = args.precipitaciones
-banco_central_path = args.banco_central
-precio_leche_path = args.precio_leche
-precio_leche_output_path = args.output_data
-
-month_dict = {'ene': 1,
-              'feb': 2,
-              'mar': 3,
-              'abr': 4,
-              'may': 5,
-              'jun': 6,
-              'jul': 7,
-              'ago': 8,
-              'sep': 9,
-              'oct': 10,
-              'nov': 11,
-              'dic': 12}
-
-
-""" Precipitaciones """
-
-precipitaciones = pd.read_csv(precipitaciones_path)#[mm]
-precipitaciones['date'] = pd.to_datetime(precipitaciones['date'], format = '%Y-%m-%d')
-precipitaciones = precipitaciones.sort_values(by = 'date', ascending = True).reset_index(drop = True)
-
-precipitaciones[precipitaciones.isna().any(axis=1)] 
-
-precipitaciones[precipitaciones.duplicated(subset = 'date', keep = False)] #ni repetidos
-
-regiones = ['Coquimbo', 'Valparaiso', 'Metropolitana_de_Santiago',
-       'Libertador_Gral__Bernardo_O_Higgins', 'Maule', 'Biobio',
-       'La_Araucania', 'Los_Rios']
-
-""" Banco central """
-
-banco_central = pd.read_csv(banco_central_path)
-
-banco_central['Periodo'] = banco_central['Periodo'].apply(lambda x: x[0:10])
-
-banco_central['Periodo'] = pd.to_datetime(banco_central['Periodo'], format = '%Y-%m-%d', errors = 'coerce')
-
-banco_central[banco_central.duplicated(subset = 'Periodo', keep = False)] #repetido se elimina
-
-banco_central.drop_duplicates(subset = 'Periodo', inplace = True)
-banco_central = banco_central[~banco_central.Periodo.isna()]
-
-def convert_int(x):
-    return int(x.replace('.', ''))
-
-cols_pib = [x for x in list(banco_central.columns) if 'PIB' in x]
-cols_pib.extend(['Periodo'])
-banco_central_pib = banco_central[cols_pib]
-banco_central_pib = banco_central_pib.dropna(how = 'any', axis = 0)
-
-for col in cols_pib:
-    if col == 'Periodo':
-        continue
-    else:
-        banco_central_pib[col] = banco_central_pib[col].apply(lambda x: convert_int(x))
-
-banco_central_pib.sort_values(by = 'Periodo', ascending = True)
 
 def to_100(x): #mirando datos del bc, pib existe entre ~85-120 - igual esto es cm (?)
     x = x.split('.')
@@ -113,70 +52,128 @@ def to_100(x): #mirando datos del bc, pib existe entre ~85-120 - igual esto es c
             x = x[0] + x[1]
             return float(x[0:2] + '.' + x[2:])
 
-        
-cols_imacec = [x for x in list(banco_central.columns) if 'Imacec' in x]
-cols_imacec.extend(['Periodo'])
-banco_central_imacec = banco_central[cols_imacec]
-banco_central_imacec = banco_central_imacec.dropna(how = 'any', axis = 0)
+def convert_int(x):
+    return int(x.replace('.', ''))
+
+def cast_to_datetime(df, columns_to_cast = ['mes', 'date', 'Periodo']):
+    month_dict = {'ene': 1, 'feb': 2, 'mar': 3,
+                  'abr': 4, 'may': 5, 'jun': 6,
+                  'jul': 7, 'ago': 8, 'sep': 9,
+                  'oct': 10, 'nov': 11, 'dic': 12}
+
+    for col_name in df.columns:
+        if col_name in columns_to_cast:
+            data_example = df[col_name].values[0]
+            if isinstance(data_example, str):
+                if len(data_example) > 10: # if longer than '%Y-%m-%d' format
+                    df[col_name] = df[col_name].apply(lambda x: x[0:10])
+                    df[col_name] = pd.to_datetime(df[col_name], format = '%Y-%m-%d', errors = 'coerce')
+                elif len(data_example)==3: # if short month name format
+                    df[col_name] = df[col_name].str.strip().str.lower().map(month_dict).astype(str).str.zfill(2)
+                    df[col_name] = pd.to_datetime(df[col_name], format = '%m')
+                else: # default '%Y-%m-%d' format
+                    df[col_name] = pd.to_datetime(df[col_name], format = '%Y-%m-%d', errors = 'coerce')
+
+    return df
+
+def drop_undesired_columns(df, cols_to_keep):
+    for col in df.columns:
+        if col not in cols_to_keep:
+            df.drop(col, axis = 1, inplace = True)
+
+def compute_std_mean_shift(df, cols_to_ignore = ['ano', 'mes']):
+    cc_cols = [x for x in df.columns if x not in cols_to_ignore]
+
+    df_shift3_mean = df[cc_cols].rolling(window=3, min_periods=1).mean().shift(1)
+    df_shift3_mean.columns = [x+'_shift3_mean' for x in df_shift3_mean.columns]    
+                                        
+    df_shift3_std = df[cc_cols].rolling(window=3, min_periods=1).std().shift(1)
+    df_shift3_std.columns = [x+'_shift3_std' for x in df_shift3_std.columns] 
+    
+    df_shift1 = df[cc_cols].shift(1)
+    df_shift1.columns = [x+'_mes_anterior' for x in df_shift1.columns]
+    
+    if 'Precio_leche' in df.columns:
+        df = pd.concat([df['Precio_leche'], df_shift3_mean, df_shift3_std, df_shift1], axis = 1)
+    else:
+        df = pd.concat([df_shift3_mean, df_shift3_std, df_shift1], axis = 1)
+    df = df.dropna(how = 'any', axis = 0)
+    
+    return df
+
+""" Datos y limpieza de Datos"""
+args = get_arguments()
+
+precipitaciones_path = args.precipitaciones
+banco_central_path = args.banco_central
+precio_leche_path = args.precio_leche
+
+merged_output_path = args.output_data
+features_output_path = args.output_features
+
+""" Precipitaciones """
+
+precipitaciones = pd.read_csv(precipitaciones_path)
+#precipitaciones = drop_dupicantes_and_nans(precipitaciones)
+precipitaciones = cast_to_datetime(precipitaciones)
+precipitaciones['mes'] = precipitaciones.date.apply(lambda x: x.month)
+precipitaciones['ano'] = precipitaciones.date.apply(lambda x: x.year)
+precipitaciones.drop('date', axis = 1, inplace = True)
+
+""" Banco central """
+
+
+banco_central = pd.read_csv(banco_central_path)
+
+banco_central_columns = list(banco_central.columns)
+cols_pib = [x for x in banco_central_columns if 'PIB' in x]
+cols_imacec = [x for x in banco_central_columns if 'Imacec' in x]
+col_iv = 'Indice_de_ventas_comercio_real_no_durables_IVCM'
+
+cols_to_keep = cols_pib + cols_imacec + [col_iv, 'Periodo'] 
+drop_undesired_columns(banco_central, cols_to_keep)
+
+banco_central = cast_to_datetime(banco_central)
+
+banco_central.drop_duplicates(subset = 'Periodo', inplace = True)
+banco_central.dropna(axis=0, inplace=True)
+#banco_central.dropna(subset=cols_pib+['Periodo'], inplace = True)
+
+
+
+banco_central = banco_central.sort_values(by = 'Periodo', ascending = True)
+
+for col in cols_pib:
+    banco_central[col] = banco_central[col].apply(lambda x: convert_int(x))
 
 for col in cols_imacec:
-    if col == 'Periodo':
-        continue
-    else:
-        banco_central_imacec[col] = banco_central_imacec[col].apply(lambda x: to_100(x))
-        assert(banco_central_imacec[col].max()>100)
-        assert(banco_central_imacec[col].min()>30)
+    banco_central[col] = banco_central[col].apply(lambda x: convert_int(x))
+    
+banco_central['num'] = banco_central[col_iv].apply(lambda x: to_100(x))
 
-banco_central_imacec.sort_values(by = 'Periodo', ascending = True)
+cols_to_keep = cols_pib + cols_imacec + ['num', 'mes', 'ano'] 
 
-banco_central_iv = banco_central[['Indice_de_ventas_comercio_real_no_durables_IVCM', 'Periodo']]
-banco_central_iv = banco_central_iv.dropna() # -unidades? #parte 
-banco_central_iv = banco_central_iv.sort_values(by = 'Periodo', ascending = True)
+banco_central['mes'] = banco_central['Periodo'].apply(lambda x: x.month)
+banco_central['ano'] = banco_central['Periodo'].apply(lambda x: x.year)
 
-banco_central_iv['num'] = banco_central_iv.Indice_de_ventas_comercio_real_no_durables_IVCM.apply(lambda x: to_100(x))
+drop_undesired_columns(banco_central, cols_to_keep)
 
-banco_central_num = pd.merge(banco_central_pib, banco_central_imacec, on = 'Periodo', how = 'inner')
-banco_central_num = pd.merge(banco_central_num, banco_central_iv, on = 'Periodo', how = 'inner')
+banco_central.reset_index(drop=True, inplace=True)
 
 """ precio leche """
 
 precio_leche = pd.read_csv(precio_leche_path)
-precio_leche.rename(columns = {'Anio': 'ano', 'Mes': 'mes_pal'}, inplace = True) # precio = nominal, sin iva en clp/litro
+precio_leche.rename(columns = {'Anio': 'ano', 'Mes': 'mes'}, inplace = True) # precio = nominal, sin iva en clp/litro
 
-# FIXME: locate dont work
-precio_leche['mes_pal'] = precio_leche['mes_pal'].str.strip().str.lower().map(month_dict).astype(str).str.zfill(2)
-precio_leche['mes'] = pd.to_datetime(precio_leche['mes_pal'], format = '%m')
-
+precio_leche = cast_to_datetime(precio_leche)
 precio_leche['mes'] = precio_leche['mes'].apply(lambda x: x.month)
-precio_leche['mes-ano'] = precio_leche.apply(lambda x: f'{x.mes}-{x.ano}', axis = 1)
 
-precipitaciones['mes'] = precipitaciones.date.apply(lambda x: x.month)
-precipitaciones['ano'] = precipitaciones.date.apply(lambda x: x.year)
-precio_leche_pp = pd.merge(precio_leche, precipitaciones, on = ['mes', 'ano'], how = 'inner')
-precio_leche_pp.drop('date', axis = 1, inplace = True)
+df_merged = pd.merge(precio_leche, precipitaciones, on = ['mes', 'ano'], how = 'inner')
+df_merged = pd.merge(df_merged, banco_central, on = ['mes', 'ano'], how = 'inner')
 
-banco_central_num['mes'] = banco_central_num['Periodo'].apply(lambda x: x.month)
-banco_central_num['ano'] = banco_central_num['Periodo'].apply(lambda x: x.year)
-precio_leche_pp_pib = pd.merge(precio_leche_pp, banco_central_num, on = ['mes', 'ano'], how = 'inner')
-precio_leche_pp_pib.drop(['Periodo', 'Indice_de_ventas_comercio_real_no_durables_IVCM', 'mes-ano', 'mes_pal'], axis =1, inplace = True)
-
-
-cc_cols = [x for x in precio_leche_pp_pib.columns if x not in ['ano', 'mes']]
-
-precio_leche_pp_pib_shift3_mean = precio_leche_pp_pib[cc_cols].rolling(window=3, min_periods=1).mean().shift(1)
-
-precio_leche_pp_pib_shift3_mean.columns = [x+'_shift3_mean' for x in precio_leche_pp_pib_shift3_mean.columns]
-                                                 
-precio_leche_pp_pib_shift3_std = precio_leche_pp_pib[cc_cols].rolling(window=3, min_periods=1).std().shift(1)
-
-precio_leche_pp_pib_shift3_std.columns = [x+'_shift3_std' for x in precio_leche_pp_pib_shift3_std.columns] 
-
-precio_leche_pp_pib_shift1 = precio_leche_pp_pib[cc_cols].shift(1)
-
-precio_leche_pp_pib_shift1.columns = [x+'_mes_anterior' for x in precio_leche_pp_pib_shift1.columns]
-
-precio_leche_pp_pib = pd.concat([precio_leche_pp_pib['Precio_leche'], precio_leche_pp_pib_shift3_mean, precio_leche_pp_pib_shift3_std, precio_leche_pp_pib_shift1], axis = 1) 
-precio_leche_pp_pib = precio_leche_pp_pib.dropna(how = 'any', axis = 0)
+df_shift = compute_std_mean_shift(df_merged)
 
 """ save clean csv """
-precio_leche_pp_pib.to_csv(precio_leche_output_path, index=False)
+
+df_merged.to_csv(merged_output_path, index=False)
+df_shift.to_csv(features_output_path, index=False)
