@@ -5,12 +5,13 @@ stages:
     deps:
     - ./src/data/dataset_cleasing.py
     outs:
-    - ./data/processed/precio_leche.csv
+    - ./data/processed/features.csv
+    - ./data/processed/merged.csv
   train:
-    cmd: python ./src/model/train.py --input_data ./data/processed/precio_leche.csv
+    cmd: python ./src/model/train.py --input_data ./data/processed/features.csv
       --output_model_path ./models/model.pkl
     deps:
-    - ./data/processed/precio_leche.csv
+    - ./data/processed/features.csv
     - ./src/model/train.py
     outs:
     - ./models/model.pkl
