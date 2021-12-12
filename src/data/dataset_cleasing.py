@@ -28,12 +28,12 @@ def get_arguments():
     my_parser.add_argument('--output_data',
                            type=str,
                            default="data/processed/merged.csv",
-                           help='Path to clean precio_leche.csv')
+                           help='Path to save merged.csv dataset')
     
     my_parser.add_argument('--output_features',
                            type=str,
                            default="data/processed/features.csv",
-                           help='Path to clean precio_leche.csv')
+                           help='Path to save features.csv to train a model')
     
     return my_parser.parse_args()
 

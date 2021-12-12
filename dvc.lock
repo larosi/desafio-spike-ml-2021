@@ -30,8 +30,8 @@ stages:
       --banco_central ./data/raw/banco_central.csv --precio_leche ./data/raw/precio_leche.csv
     deps:
     - path: ./src/data/dataset_cleasing.py
-      md5: 018f12e925a331596ef2b20aecae9aa6
-      size: 6823
+      md5: ce5d1c4cb0594ced7bd844a2859e9805
+      size: 6836
     outs:
     - path: ./data/processed/features.csv
       md5: 9864d568e8e671fb3f873e8506638afd
