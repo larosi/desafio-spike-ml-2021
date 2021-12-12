@@ -36,7 +36,7 @@ Ejecutar el script *model_api.py* desde la imagen de docker, compartiendo el vol
 ```bash
 docker run --rm -it -v ${PWD}:/workspace -p 8889:8889 spike-milk:v1 python model_api.py
 ```
-
+## Uso de la API
 La API se implementó con Flask, debido a que no estaba definida la forma en que el usuario final hará la petición a la API se implementaron dos alternativas, se puede usar una u otra cambiando el endpoint al hacer el request, el script *post_request_sample.py* contiene un ejemplo que envía un Post request a la API implementada con datos aleatorios extraidos de los .csv de datos historicos
 ```bash
 python post_request_sample.py
@@ -46,14 +46,14 @@ la respuesta esta en formato JSON con el campo *precio_leche* con el valor predi
 ```
 {"precio_leche": "237.80880504382918"}
 ```
-Alternativa 1 fecha como Query:
+### Alternativa 1 fecha como Query:
 El usuario envia un Post request a la ruta http://127.0.0.1:8889/predict_by_date indicando la fecha en el campo 'date' formato "dia-mes-año",
 el programa buscará en los .csv los datos macroeconómicos y precipitaciones requeridos, posteriormente ejecutará el modelo de predicción de precios, la ventaja es que es más simple para el usuario pero está limitado por los datos disponibles en los .csv lo ideal sería que existiera algun otro servicio SQL que mantenga actualizado estos datos. 
 
 ```
 {'date' : '01-03-2018'}
 ```
-Alternativa 2 request con datos:
+### Alternativa 2 request con datos:
 El usuario envia un Post request a la ruta http://127.0.0.1:8889/predict_by_rows con los datos de tres meses consecutivos de los 46 datos macroeconómicos y de precipitaciones usados para entrenar el modelo en formato json, posteriormente el programa transforma estos datos en features para que luego el modelo pueda hacer la predicción de precios
 ```
 'Coquimbo': {0: 2.54989542289229, 1: 2.29345097637011, 2: 0.0833333334392485},
